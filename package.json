@@ -27,7 +27,7 @@
     "postinstall": "patch-package",
     "prepare": "npm run build",
     "build": "run-p build:**",
-    "build:types": "tsc --emitDeclarationOnly && cp src/*.d.ts . && cp src/lib/*.d.ts ./lib/",
+    "build:types": "tsc -p src/tsconfig.json --emitDeclarationOnly && cp src/*.d.ts . && cp src/lib/*.d.ts ./lib/",
     "build:esbuild": "node scripts/build.js",
     "build:analyze": "cem analyze",
     "docs": "eleventy --config=.eleventy.cjs",
@@ -40,7 +40,8 @@
     "test:watch": "wtr --watch",
     "update": "npm-check -u",
     "watch": "run-p watch:*",
-    "watch:compile": "tsc -w",
+    "watch:compile": "tsc -p src/tsconfig.json -w",
+    "watch:compile:test": "tsc -p test/tsconfig.json -w",
     "watch:build": "rollup -cw"
   },
   "repository": {

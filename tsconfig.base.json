@@ -1,4 +1,5 @@
 {
+  "include": [ "src", "test" ],
   "exclude": [ "node_modules" ],
   "compilerOptions": {
     "declaration": true,
@@ -12,7 +13,8 @@
     "plugins": [ { "name": "typescript-lit-html-plugin" } ],
     "sourceMap": true,
     "module": "ESNext",
-    "target": "ES2020"
+    "target": "ES2020",
+    "strict": true
   },
   "lib": [ "DOM", "ES2020", "ESNext", "DOM.Iterable" ]
 }

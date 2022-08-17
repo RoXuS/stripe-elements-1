@@ -84,12 +84,12 @@ describe('<stripe-payment-request>', function() {
 
     describe('notifies when setting property', function notifying() {
       beforeEach(Helpers.setupNoProps);
-      NOTIFYING_PROPS.filter(not(elem(READ_ONLY_PROPS))).forEach(Helpers.testWritableNotifyingProp);
+      NOTIFYING_PROPS.filter(not(elem(READ_ONLY_PROPS as Array<string>))).forEach(Helpers.testWritableNotifyingProp);
     });
 
     describe('notifies when privately setting read-only property', function notifying() {
       beforeEach(Helpers.setupNoProps);
-      READ_ONLY_PROPS.filter(elem(NOTIFYING_PROPS)).forEach(Helpers.testReadonlyNotifyingProp);
+      READ_ONLY_PROPS.filter(elem(NOTIFYING_PROPS as Array<string>)).forEach(Helpers.testReadonlyNotifyingProp);
     });
   });
 

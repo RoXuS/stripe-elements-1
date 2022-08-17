@@ -11,6 +11,7 @@ import sharedStyles from './shared.css';
 import style from './stripe-payment-request.css';
 import { readonly } from './lib/read-only.js';
 import { notify } from './lib/notify.js';
+import { StripePaymentRequestButtonElementOptions } from '@stripe/stripe-js';
 
 interface StripeDisplayItem extends HTMLElement {
   dataset: {
@@ -46,7 +47,7 @@ type StripePaymentRequestEvent =
   | Stripe.PaymentRequestSourceEvent
   | Stripe.PaymentRequestTokenEvent;
 
-type StripePaymentRequestResponse =
+export type StripePaymentRequestResponse =
   | Stripe.SourceResult
   | Stripe.TokenResult
   | Stripe.PaymentMethodResult
@@ -89,7 +90,7 @@ function datasetToStripeShippingOption(
 ): Stripe.PaymentRequestShippingOption {
   return {
     amount: parseInt(amount),
-    detail,
+    detail: detail || '',
     ...rest,
   };
 }
@@ -172,7 +173,7 @@ export class StripePaymentRequest extends StripeBase {
    * The amount in the currency's subunit (e.g. cents, yen, etc.)
    */
   @property({ type: Number, reflect: true })
-    amount: number;
+    amount?: number;
 
   /**
    * Whether or not the device can make the payment request.
@@ -181,23 +182,23 @@ export class StripePaymentRequest extends StripeBase {
   @notify
   @readonly
   @property({ type: Boolean, attribute: 'can-make-payment', reflect: true })
-  readonly canMakePayment: Stripe.CanMakePaymentResult = null;
+  readonly canMakePayment: Stripe.CanMakePaymentResult|null = null;
 
   /**
    * The two-letter country code of your Stripe account
    * @example CA
    */
   @property({ type: String })
-    country: CountryCode;
+    country?: CountryCode;
 
   /**
    * Three character currency code
    * @example usd
    */
   @property({ type: String })
-    currency: Stripe.PaymentRequestOptions['currency'];
+    currency?: Stripe.PaymentRequestOptions['currency'];
 
-  #displayItems: Stripe.PaymentRequestItem[];
+  #displayItems?: Stripe.PaymentRequestItem[];
 
   /**
    * An array of PaymentRequestItem objects. These objects are shown as line items in the browser’s payment interface. Note that the sum of the line item amounts does not need to add up to the total amount above.
@@ -221,7 +222,7 @@ export class StripePaymentRequest extends StripeBase {
    * A name that the browser shows the customer in the payment interface.
    */
   @property({ type: String, reflect: true })
-    label: string;
+    label?: string;
 
   /**
    * Stripe PaymentIntent
@@ -229,14 +230,14 @@ export class StripePaymentRequest extends StripeBase {
   @notify
   @readonly
   @property({ type: Object, attribute: 'payment-intent' })
-  readonly paymentIntent: Stripe.PaymentIntent = null;
+  readonly paymentIntent: Stripe.PaymentIntent|null = null;
 
   /**
    * Stripe PaymentRequest
    */
   @readonly
   @property({ type: Object, attribute: 'payment-request' })
-  readonly paymentRequest: Stripe.PaymentRequest = null;
+  readonly paymentRequest: Stripe.PaymentRequest|null = null;
 
   /**
    * If you might change the payment amount later (for example, after you have calcluated shipping costs), set this to true. Note that browsers treat this as a hint for how to display things, and not necessarily as something that will prevent submission.
@@ -248,7 +249,7 @@ export class StripePaymentRequest extends StripeBase {
    * See the requestPayerName option.
    */
   @property({ type: Boolean, attribute: 'request-payer-email' })
-    requestPayerEmail: boolean;
+    requestPayerEmail?: boolean;
 
   /**
    * By default, the browser‘s payment interface only asks the customer for actual payment information. A customer name can be collected by setting this option to true. This collected name will appears in the PaymentResponse object.
@@ -256,22 +257,22 @@ export class StripePaymentRequest extends StripeBase {
    * We highly recommend you collect at least one of name, email, or phone as this also results in collection of billing address for Apple Pay. The billing address can be used to perform address verification and block fraudulent payments. For all other payment methods, the billing address is automatically collected when available.
    */
   @property({ type: Boolean, attribute: 'request-payer-name' })
-    requestPayerName: boolean;
+    requestPayerName?: boolean;
 
   /**
    * See the requestPayerName option.
    */
   @property({ type: Boolean, attribute: 'request-payer-phone' })
-    requestPayerPhone: boolean;
+    requestPayerPhone?: boolean;
 
   /**
    * Collect shipping address by setting this option to true. The address appears in the PaymentResponse.
    * You must also supply a valid [ShippingOptions] to the shippingOptions property. This can be up front at the time stripe.paymentRequest is called, or in response to a shippingaddresschange event using the updateWith callback.
    */
   @property({ type: Boolean, attribute: 'request-shipping' })
-    requestShipping: boolean;
+    requestShipping?: boolean;
 
-  #shippingOptions: Stripe.PaymentRequestShippingOption[];
+  #shippingOptions?: Stripe.PaymentRequestShippingOption[];
 
   /**
    * An array of PaymentRequestShippingOption objects. The first shipping option listed appears in the browser payment interface as the default option.
@@ -329,8 +330,8 @@ export class StripePaymentRequest extends StripeBase {
     } = this;
     const total = { label, amount };
     return {
-      country,
-      currency,
+      country: country || '',
+      currency: currency || '',
       displayItems,
       requestPayerEmail,
       requestPayerName,
@@ -372,7 +373,10 @@ export class StripePaymentRequest extends StripeBase {
     const propertyName = '--stripe-payment-request-button-height';
     const height = this.getCSSCustomPropertyValue(propertyName) || '40px';
     const style = { paymentRequestButton: { height, theme, type } };
-    const element = this.elements.create('paymentRequestButton', { paymentRequest, style });
+    const element = this.elements.create(
+      'paymentRequestButton' as const,
+      { paymentRequest, style } as StripePaymentRequestButtonElementOptions
+    );
     readonly.set<StripePaymentRequest>(this, { element });
     await this.updateComplete;
   }
@@ -384,13 +388,14 @@ export class StripePaymentRequest extends StripeBase {
     if (!this.canMakePayment) return;
     // @ts-expect-error: the types are incomplete in @types/stripe.js
     this.paymentRequest.on('click', this.updatePaymentRequest);
-    this.paymentRequest.on('cancel', this.onCancel);
-    this.paymentRequest.on('shippingaddresschange', this.onShippingaddresschange);
-    this.paymentRequest.on('shippingoptionchange', this.onShippingoptionchange);
+    this.paymentRequest?.on('cancel', this.onCancel);
+    this.paymentRequest?.on('shippingaddresschange', this.onShippingaddresschange);
+    this.paymentRequest?.on('shippingoptionchange', this.onShippingoptionchange);
     switch (this.generate) {
-      case 'payment-method': this.paymentRequest.on('paymentmethod', this.onPaymentResponse); break;
-      case 'source': this.paymentRequest.on('source', this.onPaymentResponse); break;
-      case 'token': this.paymentRequest.on('token', this.onPaymentResponse); break;
+      case 'payment-method':
+        this.paymentRequest?.on('paymentmethod', this.onPaymentResponse); break;
+      case 'source': this.paymentRequest?.on('source', this.onPaymentResponse); break;
+      case 'token': this.paymentRequest?.on('token', this.onPaymentResponse); break;
     }
   }
 
@@ -452,10 +457,13 @@ export class StripePaymentRequest extends StripeBase {
   @bound private async confirmPaymentIntent(
     paymentResponse: Stripe.PaymentRequestPaymentMethodEvent
   ): Promise<void> {
-    const confirmCardData = { payment_method: this.paymentMethod.id };
+    const confirmCardData = { payment_method: this.paymentMethod?.id };
     const { error = null, paymentIntent = null } =
       await this.confirmCardPayment(confirmCardData, { handleActions: false })
-        .then(({ error: confirmationError }) => this.complete(paymentResponse, confirmationError)) // throws if first confirm errors
+        .then(confirmCardDataResponse => {
+          // throws if first confirm errors
+          return this.complete(paymentResponse, confirmCardDataResponse?.error);
+        })
         .then(throwResponseError)
         .then(() => this.confirmCardPayment())
         .then(throwResponseError)
@@ -471,8 +479,10 @@ export class StripePaymentRequest extends StripeBase {
   @bound private async confirmCardPayment(
     data?: Stripe.ConfirmCardPaymentData,
     options?: Stripe.ConfirmCardPaymentOptions
-  ): Promise<Stripe.PaymentIntentResult> {
-    return this.stripe.confirmCardPayment(this.clientSecret, data, options);
+  ): Promise<Stripe.PaymentIntentResult|undefined> {
+    if (this.clientSecret)
+      return this.stripe?.confirmCardPayment(this.clientSecret, data, options);
+    return undefined;
   }
 
   @bound private onShippingaddresschange(
